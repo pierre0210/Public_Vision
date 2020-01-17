@@ -111,10 +111,10 @@ def main():
 				center_y = y + h/2
 				widths = w
 				heights = h
-			table.putNumber('x', center_x)
-			table.putNumber('y', center_y)
-			table.putNumber('width', widths)
-			table.putNumber('height', heights)
+				table.putNumber('x', center_x)
+				table.putNumber('y', center_y)
+				table.putNumber('width', widths)
+				table.putNumber('height', heights)	
 
 if __name__ == '__main__':
 	main()
