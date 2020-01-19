@@ -15,9 +15,9 @@ class Processing:
 		self.input = None
 		
 		#hsv threshold#
-		self.hue = [0.0, 180.0]
-		self.saturation = [0.0, 32.0]
-		self.value = [217.0, 255.0]
+		self.hue = [30.0, 85.0]
+		self.saturation = [0.0, 20.0]
+		self.value = [235.0, 255.0]
 		
 		#find contour#
 		self.min_area = 9.0
@@ -93,9 +93,9 @@ class Processing:
 		self.output = self.filter_contours(self.output, self.min_area, self.min_perimeter, self.min_width, self.max_width, self.min_height, self.max_height, self.solidity, self.max_vertices, self.min_vertices, self.min_ratio, self.max_ratio)
 		
 def main():
-	init = NetworkTablesInstance.getDefault()
-	init.starClientTeam(8180)
-	table = NetworkTables.getTable('/datatable')
+	#init = NetworkTablesInstance.getDefault()
+	#init.startClientTeam(8180)
+	#table = NetworkTables.getTable('/datatable')
 	
 	pipeline = Processing()
 	
@@ -111,11 +111,11 @@ def main():
 				center_y = y + h/2
 				widths = w
 				heights = h
-				#print(center_x)
-				table.putNumber('x', center_x)
-				table.putNumber('y', center_y)
-				table.putNumber('width', widths)
-				table.putNumber('height', heights)	
+				print(center_x)
+				#table.putNumber('x', center_x)
+				#table.putNumber('y', center_y)
+				#table.putNumber('width', widths)
+				#table.putNumber('height', heights)	
 
 if __name__ == '__main__':
 	main()
