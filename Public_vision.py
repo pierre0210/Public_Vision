@@ -112,6 +112,9 @@ def main():
 				widths = w
 				heights = h
 				print(center_x)
+				print(center_y)
+				print(widths)
+				print(heights)
 				#table.putNumber('x', center_x)
 				#table.putNumber('y', center_y)
 				#table.putNumber('width', widths)
