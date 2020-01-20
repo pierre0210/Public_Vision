@@ -1,23 +1,37 @@
 import cv2
 from networktables import NetworkTables
 from networktables import NetworkTablesInstance
+from cscore import CameraServer, VideoSource
+import numpy as np
+import json
+import sys
+from threading import Thread
+import math
+import time
+
+blur_radius = 5
+
+image_width = 256
+image_height = 144
+
+lower_color = np.array([30.0, 0.0, 235.0])
+upper_color = np.array([85.0, 20.0, 255.0])
 
 class Processing:
-	def __init__(self):
+	def __init__(self, image_width, image_height, lower_color, upper_color, blur):
 		#blur#
-		self.blur_radius = 5
+		self.blur_radius = blur
 		
 		#resize image#
-		self.width = 320.0
-		self.height = 240.0
+		self.width = image_width
+		self.height = image_height
 		self.interpolation = cv2.INTER_CUBIC
 		self.output = None
 		self.input = None
 		
 		#hsv threshold#
-		self.hue = [30.0, 85.0]
-		self.saturation = [0.0, 20.0]
-		self.value = [235.0, 255.0]
+		self.lower_color = lower_color
+		self.upper_color = upper_color
 		
 		#find contour#
 		self.min_area = 9.0
@@ -38,9 +52,9 @@ class Processing:
 	def resize_image(self, frame, width, height, interpolation):
 		return cv2.resize(frame, ((int)(width), (int)(height)), 0, 0, interpolation)
 		
-	def hsv_threshold(self, frame, hue, sat, val):
+	def hsv_threshold(self, frame, lower_color, upper_color):
 		output = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
-		return cv2.inRange(output, (hue[0], sat[0], val[0]), (hue[1], sat[1], val[1]))
+		return cv2.inRange(output, lower_color, upper_color)
 		
 	def find_contours(self, input, external_only):
 		if(external_only):
@@ -48,7 +62,7 @@ class Processing:
 		else:
 			mode = cv2.RETR_LIST
 		method = cv2.CHAIN_APPROX_SIMPLE
-		contours, _ = cv2.findContours(input, mode=mode, method=method) #warning!!!! when testing in rpi, you should add one more " _, " at the front
+		_, contours, _ = cv2.findContours(input, mode=mode, method=method) #warning!!!! when testing in rpi, you should add one more " _, " at the front
 		return contours
 		
 	def filter_contours(self, input_contours, min_area, min_perimeter, min_width, max_width,min_height, max_height, solidity, max_vertex_count, min_vertex_count,min_ratio, max_ratio):
@@ -84,23 +98,212 @@ class Processing:
 		self.output = self.resize_image(self.input, self.width, self.height, self.interpolation)
 		
 		self.input = self.output
-		self.output = self.hsv_threshold(self.input, self.hue, self.saturation, self.value)
+		self.output = self.hsv_threshold(self.input, self.lower_color, self.upper_color)
 		
 		self.input = self.output
 		self.output = self.find_contours(self.input, False)
 		
 		self.input = self.output
 		self.output = self.filter_contours(self.output, self.min_area, self.min_perimeter, self.min_width, self.max_width, self.min_height, self.max_height, self.solidity, self.max_vertices, self.min_vertices, self.min_ratio, self.max_ratio)
-		
+
+class VideoShow:
+    """
+    Class that continuously shows a frame using a dedicated thread.
+    """
+
+    def __init__(self, imgWidth, imgHeight, cameraServer, frame=None, name='stream'):
+        self.outputStream = cameraServer.putVideo(name, imgWidth, imgHeight)
+        self.frame = frame
+        self.stopped = False
+
+    def start(self):
+        Thread(target=self.show, args=()).start()
+        return self
+
+    def show(self):
+        while not self.stopped:
+            self.outputStream.putFrame(self.frame)
+
+    def stop(self):
+        self.stopped = True
+
+    def notifyError(self, error):
+        self.outputStream.notifyError(error)
+
+class WebcamVideoStream:
+    def __init__(self, camera, cameraServer, frameWidth, frameHeight, name="WebcamVideoStream"):
+        # initialize the video camera stream and read the first frame
+        # from the stream
+
+        #Automatically sets exposure to 0 to track tape
+        self.webcam = camera
+        self.webcam.setExposureManual(0)
+        #Some booleans so that we don't keep setting exposure over and over to the same value
+        self.autoExpose = False
+        self.prevValue = self.autoExpose
+        #Make a blank image to write on
+        self.img = np.zeros(shape=(frameWidth, frameHeight, 3), dtype=np.uint8)
+        #Gets the video
+        self.stream = cameraServer.getVideo(camera = camera)
+        (self.timestamp, self.img) = self.stream.grabFrame(self.img)
+
+        # initialize the thread name
+        self.name = name
+
+        # initialize the variable used to indicate if the thread should
+        # be stopped
+        self.stopped = False
+
+    def start(self):
+        # start the thread to read frames from the video stream
+        t = Thread(target=self.update, name=self.name, args=())
+        t.daemon = True
+        t.start()
+        return self
+
+    def update(self):
+        # keep looping infinitely until the thread is stopped
+        while True:
+            # if the thread indicator variable is set, stop the thread
+            if self.stopped:
+                return
+            #Boolean logic we don't keep setting exposure over and over to the same value
+            if self.autoExpose:
+
+                self.webcam.setExposureAuto()
+            else:
+
+                self.webcam.setExposureManual(0)
+            #gets the image and timestamp from cameraserver
+            (self.timestamp, self.img) = self.stream.grabFrame(self.img)
+
+    def read(self):
+        # return the frame most recently read
+        return self.timestamp, self.img
+
+    def stop(self):
+        # indicate that the thread should be stopped
+        self.stopped = True
+    def getError(self):
+        return self.stream.getError()	
+
+configFile = "/boot/frc.json"
+
+class CameraConfig: pass
+
+team = None
+server = False
+cameraConfigs = []
+
+def parseError(str):
+    print("config error in '" + configFile + "': " + str, file=sys.stderr)
+
+def readCameraConfig(config):
+    cam = CameraConfig()
+
+    # name
+    try:
+        cam.name = config["name"]
+    except KeyError:
+        parseError("could not read camera name")
+        return False
+
+    # path
+    try:
+        cam.path = config["path"]
+    except KeyError:
+        parseError("camera '{}': could not read path".format(cam.name))
+        return False
+
+    cam.config = config
+
+    cameraConfigs.append(cam)
+    return True
+
+def startCamera(config):
+    print("Starting camera '{}' on {}".format(config.name, config.path))
+    cs = CameraServer.getInstance()
+    camera = cs.startAutomaticCapture(name=config.name, path=config.path)
+
+    camera.setConfigJson(json.dumps(config.config))
+
+    return cs, camera
+
+def readConfig():
+    global team
+    global server
+
+    # parse file
+    try:
+        with open(configFile, "rt") as f:
+            j = json.load(f)
+    except OSError as err:
+        print("could not open '{}': {}".format(configFile, err), file=sys.stderr)
+        return False
+
+    # top level must be an object
+    if not isinstance(j, dict):
+        parseError("must be JSON object")
+        return False
+
+    # team number
+    try:
+        team = j["team"]
+    except KeyError:
+        parseError("could not read team number")
+        return False
+
+    # ntmode (optional)
+    if "ntmode" in j:
+        str = j["ntmode"]
+        if str.lower() == "client":
+            server = False
+        elif str.lower() == "server":
+            server = True
+        else:
+            parseError("could not understand ntmode value '{}'".format(str))
+
+    # cameras
+    try:
+        cameras = j["cameras"]
+    except KeyError:
+        parseError("could not read cameras")
+        return False
+    for camera in cameras:
+        if not readCameraConfig(camera):
+            return False
+
+    return True
+
 def main():
-	#init = NetworkTablesInstance.getDefault()
-	#init.startClientTeam(8180)
-	#table = NetworkTables.getTable('/datatable')
+	if len(sys.argv) >= 2:
+		configFile = sys.argv[1]
+	if not readConfig():
+		sys.exit(1)
 	
-	pipeline = Processing()
+	init = NetworkTablesInstance.getDefault()
+	init.startClientTeam(team)
+	table = NetworkTables.getTable('PublicVision')
+	table.putNumber('state', 1)
 	
-	cap = cv2.VideoCapture(0)
-	while cap.isOpened():
+	cameras = []
+	streams = []
+	
+	for cameraConfig in cameraConfigs:
+		cs, cameraCapture = startCamera(cameraConfig)
+		streams.append(cs)
+		cameras.append(cameraCapture)
+	
+	webcam = cameras[0]
+	cameraServer = streams[0]
+	print("Processing...")
+	pipeline = Processing(image_width, image_height, lower_color, upper_color, blur_radius)
+	
+	cap = WebcamVideoStream(webcam, cameraServer, image_width, image_height).start()
+	img = np.zeros(shape=(image_height, image_width, 3), dtype=np.uint8)
+	streamViewer = VideoShow(image_width,image_height, cameraServer, frame=img, name="PublicVision").start()
+	
+	while True:
 		time, frame = cap.read()
 		if time:
 			pipeline.process(frame)
@@ -111,14 +314,17 @@ def main():
 				center_y = y + h/2
 				widths = w
 				heights = h
+				
 				print(center_x)
 				print(center_y)
 				print(widths)
 				print(heights)
-				#table.putNumber('x', center_x)
-				#table.putNumber('y', center_y)
-				#table.putNumber('width', widths)
-				#table.putNumber('height', heights)	
+				
+				table.putNumber('x', center_x)
+				table.putNumber('y', center_y)
+				table.putNumber('width', widths)
+				table.putNumber('height', heights)
+				
 
 if __name__ == '__main__':
 	main()
