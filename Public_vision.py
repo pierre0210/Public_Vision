@@ -340,22 +340,24 @@ def main():
 			for contour in pipeline.output:
 				x, y, w, h = cv2.boundingRect(contour)
 				center_x = x + w/2
-				center_y = y + h/2
+				center_y = y
 				widths = w
 				heights = h
 				
 				distance = (H_FOCAL_LENGTH*real_width)/widths
-				H_ANGLE_TO_TARGET = math.degrees(math.atan(abs(center_x-camera_center_X)/H_FOCAL_LENGTH))
-				'''
+				H_ANGLE_TO_TARGET = math.degrees(math.atan((center_x-camera_center_X)/H_FOCAL_LENGTH))
+				V_ANGLE_TO_TARGET = math.degrees(math.atan((center_y-camera_center_Y)/V_FOCAL_LENGTH))
 				print("Center_x: ",center_x)
 				print("Center_y: ",center_y)
 				print("Width: ",widths)
 				print("Heights: ",heights)
 				print("Distance", distance)
-				print(H_ANGLE_TO_TARGET)
-				'''
+				print("H_Angle", H_ANGLE_TO_TARGET)
+				print("V_Angle", V_ANGLE_TO_TARGET)
 				
-				table.putNumber('angle', H_ANGLE_TO_TARGET)
+				
+				table.putNumber('h_angle', H_ANGLE_TO_TARGET)
+				table.putNumber('v_angle', V_ANGLE_TO_TARGET)
 				table.putNumber('distance', distance)
 				table.putNumber('x', center_x)
 				table.putNumber('y', center_y)
