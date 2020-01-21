@@ -17,6 +17,7 @@ image_height = 120
 H_Aspect = 4
 V_Aspect = 3
 
+#target
 real_width = 96
 real_height = 39
 
@@ -344,13 +345,17 @@ def main():
 				heights = h
 				
 				distance = (H_FOCAL_LENGTH*real_width)/widths
+				H_ANGLE_TO_TARGET = math.degrees(math.atan(abs(center_x-camera_center_X)/H_FOCAL_LENGTH))
 				'''
 				print("Center_x: ",center_x)
 				print("Center_y: ",center_y)
 				print("Width: ",widths)
 				print("Heights: ",heights)
+				print("Distance", distance)
+				print(H_ANGLE_TO_TARGET)
 				'''
-				print(distance)
+				
+				table.putNumber('angle', H_ANGLE_TO_TARGET)
 				table.putNumber('distance', distance)
 				table.putNumber('x', center_x)
 				table.putNumber('y', center_y)
