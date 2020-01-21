@@ -11,11 +11,32 @@ import time
 
 blur_radius = 5
 
-image_width = 256
-image_height = 144
+image_width = 160
+image_height = 120
 
-lower_color = np.array([30.0, 0.0, 235.0])
-upper_color = np.array([85.0, 20.0, 255.0])
+H_Aspect = 4
+V_Aspect = 3
+
+real_width = 96
+real_height = 39
+
+#Lifecam3000
+diagonalView = math.radians(68.5)
+
+diagonalAspect = math.hypot(H_Aspect, V_Aspect)
+
+#FOV(Field of view)
+horizontalView = math.atan(math.tan(diagonalView/2) * (H_Aspect / diagonalAspect)) * 2
+verticalView = math.atan(math.tan(diagonalView/2) * (V_Aspect / diagonalAspect)) * 2
+
+camera_center_X = image_width/2 - .5
+camera_center_Y = image_height/2 - .5
+
+H_FOCAL_LENGTH = image_width / (2*math.tan((horizontalView/2)))
+V_FOCAL_LENGTH = image_height / (2*math.tan((verticalView/2)))
+
+lower_color = np.array([65.0, 229.0, 38.0])
+upper_color = np.array([92.0, 255.0, 255.0])
 
 class Processing:
 	def __init__(self, image_width, image_height, lower_color, upper_color, blur):
@@ -58,7 +79,7 @@ class Processing:
 		
 	def find_contours(self, input, external_only):
 		if(external_only):
-			mode = cv2.RETER_EXTERNAL
+			mode = cv2.RETR_EXTERNAL
 		else:
 			mode = cv2.RETR_LIST
 		method = cv2.CHAIN_APPROX_SIMPLE
@@ -101,7 +122,7 @@ class Processing:
 		self.output = self.hsv_threshold(self.input, self.lower_color, self.upper_color)
 		
 		self.input = self.output
-		self.output = self.find_contours(self.input, False)
+		self.output = self.find_contours(self.input, True)
 		
 		self.input = self.output
 		self.output = self.filter_contours(self.output, self.min_area, self.min_perimeter, self.min_width, self.max_width, self.min_height, self.max_height, self.solidity, self.max_vertices, self.min_vertices, self.min_ratio, self.max_ratio)
@@ -282,9 +303,16 @@ def main():
 		sys.exit(1)
 	
 	init = NetworkTablesInstance.getDefault()
-	init.startClientTeam(team)
+	
+	if server:
+		print("Setting up server...")
+		init.startServer()
+	else:
+		print("Setting up NetworkTables client for team {}".format(team))
+		init.startClientTeam(team)
+	
 	table = NetworkTables.getTable('PublicVision')
-	table.putNumber('state', 1)
+	table.putBoolean('State', True)
 	
 	cameras = []
 	streams = []
@@ -315,11 +343,15 @@ def main():
 				widths = w
 				heights = h
 				
-				print(center_x)
-				print(center_y)
-				print(widths)
-				print(heights)
-				
+				distance = (H_FOCAL_LENGTH*real_width)/widths
+				'''
+				print("Center_x: ",center_x)
+				print("Center_y: ",center_y)
+				print("Width: ",widths)
+				print("Heights: ",heights)
+				'''
+				print(distance)
+				table.putNumber('distance', distance)
 				table.putNumber('x', center_x)
 				table.putNumber('y', center_y)
 				table.putNumber('width', widths)
