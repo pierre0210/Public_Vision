@@ -9,7 +9,7 @@ from threading import Thread
 import math
 import time
 
-blur_radius = 5
+blur_radius = 2
 
 image_width = 160
 image_height = 120
@@ -36,8 +36,8 @@ camera_center_Y = image_height/2 - .5
 H_FOCAL_LENGTH = image_width / (2*math.tan((horizontalView/2)))
 V_FOCAL_LENGTH = image_height / (2*math.tan((verticalView/2)))
 
-lower_color = np.array([65.0, 229.0, 38.0])
-upper_color = np.array([92.0, 255.0, 255.0])
+lower_color = np.array([25.0, 180.0, 30.0])
+upper_color = np.array([180.0, 255.0, 255.0])
 
 class Processing:
 	def __init__(self, image_width, image_height, lower_color, upper_color, blur):
