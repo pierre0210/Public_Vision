@@ -11,6 +11,7 @@ import time
 
 blur_radius = 2
 
+#image size ratioed to 4:3
 image_width = 160
 image_height = 120
 
