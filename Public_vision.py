@@ -1,3 +1,7 @@
+#!/usr/bin/env python3
+#-----------------------------------------------------------------------------
+# Raspberry Pi image: https://github.com/wpilibsuite/FRCVision-pi-gen/releases
+#-----------------------------------------------------------------------------
 import cv2
 from networktables import NetworkTables
 from networktables import NetworkTablesInstance
