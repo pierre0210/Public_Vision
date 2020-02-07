@@ -61,7 +61,7 @@ class Processing:
 		self.upper_color = upper_color
 		
 		#find contour#
-		self.min_area = 9.0
+		self.min_area = 80.0
 		self.min_perimeter = 30.0
 		self.min_width = 10.0
 		self.max_width = 1000
@@ -338,8 +338,9 @@ def main():
 	streamViewer = VideoShow(image_width,image_height, cameraServer, frame=img, name="PublicVision").start()
 	
 	while True:
-		time, frame = cap.read()
-		if time:
+		time_, frame = cap.read()
+		start = time.time()
+		if time_:
 			pipeline.process(frame)
 			
 			for contour in pipeline.output:
@@ -352,14 +353,15 @@ def main():
 				distance = (H_FOCAL_LENGTH*real_width)/widths
 				H_ANGLE_TO_TARGET = math.degrees(math.atan((center_x-camera_center_X)/H_FOCAL_LENGTH))
 				V_ANGLE_TO_TARGET = math.degrees(math.atan((center_y-camera_center_Y)/V_FOCAL_LENGTH))
-				print("Center_x: ",center_x)
-				print("Center_y: ",center_y)
-				print("Width: ",widths)
-				print("Heights: ",heights)
-				print("Distance", distance)
+				#print("Center_x: ",center_x)
+				#print("Center_y: ",center_y)
+				#print("Width: ",widths)
+				#print("Heights: ",heights)
+				#print("Distance", distance)
 				print("H_Angle", H_ANGLE_TO_TARGET)
-				print("V_Angle", V_ANGLE_TO_TARGET)
-				
+				#print("V_Angle", V_ANGLE_TO_TARGET)
+				now = time.time()
+				print("time: ", (now-start))
 				
 				table.putNumber('h_angle', H_ANGLE_TO_TARGET)
 				table.putNumber('v_angle', V_ANGLE_TO_TARGET)
@@ -368,6 +370,7 @@ def main():
 				table.putNumber('y', center_y)
 				table.putNumber('width', widths)
 				table.putNumber('height', heights)
+				table.putNumber('time', (now-start))
 				
 
 if __name__ == '__main__':
