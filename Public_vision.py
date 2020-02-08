@@ -318,7 +318,6 @@ def main():
 		init.startClientTeam(team)
 	
 	table = NetworkTables.getTable('PublicVision')
-	table.putBoolean('State', True)
 	
 	cameras = []
 	streams = []
@@ -331,6 +330,8 @@ def main():
 	webcam = cameras[0]
 	cameraServer = streams[0]
 	print("Processing...")
+	table.putBoolean('connect', True)
+	
 	pipeline = Processing(image_width, image_height, lower_color, upper_color, blur_radius)
 	
 	cap = WebcamVideoStream(webcam, cameraServer, image_width, image_height).start()
@@ -339,11 +340,11 @@ def main():
 	
 	while True:
 		time_, frame = cap.read()
-		start = time.time()
+		#start = time.time()
 		if time_:
 			pipeline.process(frame)
-			
-			for contour in pipeline.output:
+			contours = sorted(pipeline.output, key=lambda x: cv2.contourArea(x), reverse=True)
+			for contour in contours:
 				x, y, w, h = cv2.boundingRect(contour)
 				center_x = x + w/2
 				center_y = y
@@ -353,6 +354,7 @@ def main():
 				distance = (H_FOCAL_LENGTH*real_width)/widths
 				H_ANGLE_TO_TARGET = math.degrees(math.atan((center_x-camera_center_X)/H_FOCAL_LENGTH))
 				V_ANGLE_TO_TARGET = math.degrees(math.atan((center_y-camera_center_Y)/V_FOCAL_LENGTH))
+				area = cv2.contourArea(contour)
 				#print("Center_x: ",center_x)
 				#print("Center_y: ",center_y)
 				#print("Width: ",widths)
@@ -360,8 +362,9 @@ def main():
 				#print("Distance", distance)
 				print("H_Angle", H_ANGLE_TO_TARGET)
 				#print("V_Angle", V_ANGLE_TO_TARGET)
-				now = time.time()
-				print("time: ", (now-start))
+				#now = time.time()
+				#print("time: ", time_)
+				#print("area", area)
 				
 				table.putNumber('h_angle', H_ANGLE_TO_TARGET)
 				table.putNumber('v_angle', V_ANGLE_TO_TARGET)
@@ -370,7 +373,7 @@ def main():
 				table.putNumber('y', center_y)
 				table.putNumber('width', widths)
 				table.putNumber('height', heights)
-				table.putNumber('time', (now-start))
+				#table.putNumber('time', time_)
 				
 
 if __name__ == '__main__':
