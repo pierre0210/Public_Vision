@@ -344,6 +344,7 @@ def main():
 		if time_:
 			pipeline.process(frame)
 			contours = sorted(pipeline.output, key=lambda x: cv2.contourArea(x), reverse=True)
+			print(len(contours))
 			for contour in contours:
 				x, y, w, h = cv2.boundingRect(contour)
 				center_x = x + w/2
