@@ -355,9 +355,9 @@ def main():
 				widths = w
 				heights = h
 				
-				distance = (V_FOCAL_LENGTH*real_height)/heights #change to horizontal
-				H_ANGLE_TO_TARGET = math.degrees(math.atan((center_x-camera_center_X)/H_FOCAL_LENGTH))
-				V_ANGLE_TO_TARGET = math.degrees(math.atan((center_y-camera_center_Y)/V_FOCAL_LENGTH))
+				distance = math.cos(math.radians(cam_angle))*(V_FOCAL_LENGTH*real_height)/heights #change to horizontal
+				H_ANGLE_TO_TARGET = math.degrees(math.atan((center_x-camera_center_X)/H_FOCAL_LENGTH)) #yaw
+				V_ANGLE_TO_TARGET = math.degrees(math.atan((center_y-camera_center_Y)/V_FOCAL_LENGTH)) #pitch
 				area = cv2.contourArea(contour)
 				#print("Center_x: ",center_x)
 				#print("Center_y: ",center_y)
