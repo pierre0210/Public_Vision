@@ -13,6 +13,9 @@ from threading import Thread
 import math
 import time
 
+#camera angle
+cam_angle = 0 #temp
+
 blur_radius = 2
 
 #image size ratioed to 4:3
@@ -24,7 +27,7 @@ V_Aspect = 3
 
 #target
 real_width = 96
-real_height = 39
+real_height = 39*math.cos(math.radians(cam_angle))
 
 #Lifecam3000
 diagonalView = math.radians(68.5)
@@ -352,7 +355,7 @@ def main():
 				widths = w
 				heights = h
 				
-				distance = (H_FOCAL_LENGTH*real_width)/widths
+				distance = (V_FOCAL_LENGTH*real_height)/heights #change to horizontal
 				H_ANGLE_TO_TARGET = math.degrees(math.atan((center_x-camera_center_X)/H_FOCAL_LENGTH))
 				V_ANGLE_TO_TARGET = math.degrees(math.atan((center_y-camera_center_Y)/V_FOCAL_LENGTH))
 				area = cv2.contourArea(contour)
