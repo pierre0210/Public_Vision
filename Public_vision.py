@@ -381,6 +381,13 @@ def main():
 				
 			else:
 				table.putBoolean('targetLost', True) #maybe we can add a vibrate system on the rio
+				table.putNumber('h_angle', 0.0)
+				table.putNumber('v_angle', 0.0)
+				table.putNumber('distance', 0.0)
+				table.putNumber('x', 0.0)
+				table.putNumber('y', 0.0)
+				table.putNumber('width', 0.0)
+				table.putNumber('height', 0.0)
 				
 
 if __name__ == '__main__':
