@@ -16,7 +16,7 @@ import time
 #camera angle
 cam_angle = 0 #temp
 
-blur_radius = 2
+blur_radius = 1.2
 
 #image size ratioed to 4:3
 image_width = 160
@@ -27,7 +27,7 @@ V_Aspect = 3
 
 #target
 real_width = 96
-real_height = 39*math.cos(math.radians(cam_angle))
+real_height = 38*math.cos(math.radians(cam_angle))
 
 #Lifecam3000
 diagonalView = math.radians(68.5)
@@ -44,12 +44,13 @@ camera_center_Y = image_height/2 - .5
 H_FOCAL_LENGTH = image_width / (2*math.tan((horizontalView/2)))
 V_FOCAL_LENGTH = image_height / (2*math.tan((verticalView/2)))
 
-lower_color = np.array([25.0, 180.0, 30.0])
-upper_color = np.array([180.0, 255.0, 255.0])
+lower_color = np.array([65.0, 189.5, 53.5])
+upper_color = np.array([97.0, 255.0, 117.0])
 
 class Processing:
 	def __init__(self, image_width, image_height, lower_color, upper_color, blur):
 		#blur#
+		self.blur_type = "Gaussian_Blur"
 		self.blur_radius = blur
 		
 		#resize image#
@@ -64,11 +65,11 @@ class Processing:
 		self.upper_color = upper_color
 		
 		#find contour#
-		self.min_area = 80.0
-		self.min_perimeter = 30.0
-		self.min_width = 10.0
+		self.min_area = 1.0
+		self.min_perimeter = 1.0
+		self.min_width = 1.0
 		self.max_width = 1000
-		self.min_height = 20.0
+		self.min_height = 1.0
 		self.max_height = 1000
 		self.solidity = [0.0, 100.0]
 		self.max_vertices = 1000000
@@ -77,7 +78,8 @@ class Processing:
 		self.max_ratio = 1000
 		
 	def blur_image(self, frame, radius):
-		return cv2.blur(frame,(radius,radius))
+		ksize = int(6 * round(radius) + 1)
+		return cv2.GaussianBlur(frame,(ksize,ksize), round(radius))
 		
 	def resize_image(self, frame, width, height, interpolation):
 		return cv2.resize(frame, ((int)(width), (int)(height)), 0, 0, interpolation)
@@ -347,7 +349,7 @@ def main():
 		if time_:
 			pipeline.process(frame)
 			contours = sorted(pipeline.output, key=lambda x: cv2.contourArea(x), reverse=True)
-			print(len(contours))
+			#print(len(contours))
 			if(len(contours) == 1):
 				table.putBoolean('targetLost', False)
 				for contour in contours:
@@ -359,17 +361,18 @@ def main():
 					
 					distance = math.cos(math.radians(cam_angle))*(V_FOCAL_LENGTH*real_height)/heights #change to horizontal
 					H_ANGLE_TO_TARGET = math.degrees(math.atan((center_x-camera_center_X)/H_FOCAL_LENGTH)) #yaw
-					V_ANGLE_TO_TARGET = math.degrees(math.atan((center_y-camera_center_Y)/V_FOCAL_LENGTH)) #pitch
+					V_ANGLE_TO_TARGET = math.degrees(math.atan((camera_center_Y-center_y)/V_FOCAL_LENGTH)) #pitch
 					area = cv2.contourArea(contour)
+					
 					#print("Center_x: ",center_x)
 					#print("Center_y: ",center_y)
 					#print("Width: ",widths)
 					#print("Heights: ",heights)
 					#print("Distance", distance)
-					print("H_Angle", H_ANGLE_TO_TARGET)
-					#print("V_Angle", V_ANGLE_TO_TARGET)
+					print("H_Angle: ", H_ANGLE_TO_TARGET)
+					#print("V_Angle: ", V_ANGLE_TO_TARGET)
 					#now = time.time()
-					#print("area", area)
+					#print("area: ", area)
 				
 					table.putNumber('h_angle', H_ANGLE_TO_TARGET)
 					table.putNumber('v_angle', V_ANGLE_TO_TARGET)
@@ -380,6 +383,7 @@ def main():
 					table.putNumber('height', heights)
 				
 			else:
+				print(len(contours))
 				table.putBoolean('targetLost', True) #maybe we can add a vibrate system on the rio
 				table.putNumber('h_angle', 0.0)
 				table.putNumber('v_angle', 0.0)
